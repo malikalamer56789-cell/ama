@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شعاع الأنوار للتجارة - النظام السحابي</title>
+
+<!-- مكتبات Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<style>
+:root {
+--main: #d4af37;
+--main-hover: #b89528;
+--bg: #121212;
+--card: #1e1e1e;
+--text: #ffffff;
+--green: #25d366;
+--blue: #3498db;
+--red: #e74c3c;
+--border: #333333;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+body { background: var(--bg); color: var(--text); padding: 10px; }
+
+/* Header */
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #1a1a1a; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; }
+.logo-box { display: flex; align-items: center; gap: 10px; width: 100%; }
+.brand-title { color: var(--main); font-size: 16px; font-weight: bold; }
+.sync-badge { font-size: 10px; padding: 3px 8px; border-radius: 6px; background: #27ae60; color: #fff; font-weight: bold; }
+
+/* Navigation Tabs */
+.nav-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; }
+.tab-btn { flex: 0 0 auto; padding: 10px 14px; background: #2a2a2a; color: #aaa; border: 1px solid #3d3d3d; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.tab-btn.active { background: var(--main); color: #000; border-color: var(--main); }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+.card { background: var(--card); border-radius: 12px; padding: 14px; margin-bottom: 12px; border-right: 4px solid var(--main); border-top: 1px solid #2a2a2a; border-left: 1px solid #2a2a2a; border-bottom: 1px solid #2a2a2a; }
+.card-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; color: var(--main); display: flex; justify-content: space-between; align-items: center; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+input, select, textarea { width: 100%; padding: 11px; margin: 5px 0; border-radius: 8px; border: 1px solid #444; background: #282828; color: #fff; font-size: 13px; outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--main); }
+
+button { display: block; width: 100%; padding: 11px; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; margin-top: 6px; text-align: center; }
+.btn-main { background: var(--main); color: #000; }
+.btn-wa { background: var(--green); color: #fff; }
+.btn-blue { background: var(--blue); color: #fff; }
+.btn-danger { background: var(--red); color: #fff; }
+
+.list-item { background: #2a2a2a; border-radius: 8px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; border: 1px solid #383838; }
+.img-preview { width: 100%; max-height: 160px; object-fit: contain; border-radius: 8px; margin-top: 6px; display: none; background: #111; }
+.badge-cat { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #333; color: var(--main); border: 1px solid var(--main); }
+
+/* Modals */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px; }
+.modal-overlay.active { display: flex; }
+.modal-card { background: #222; border-radius: 12px; padding: 18px; width: 100%; max-width: 480px; border: 1px solid var(--main); max-height: 88vh; overflow-y: auto; color: #fff; }
+
+#pdfPrintArea { background: #ffffff; color: #000000; padding: 15px; border-radius: 6px; }
+#pdfPrintArea table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+#pdfPrintArea th, #pdfPrintArea td { border: 1px solid #ccc; padding: 6px; text-align: center; font-size: 11px; color: #000; }
+#pdfPrintArea th { background: #f0f0f0; font-weight: bold; }
+.report-img { width: 45px; height: 45px; object-fit: cover; border-radius: 4px; }
+
+@media print {
+body * { visibility: hidden; }
+#pdfPrintArea, #pdfPrintArea * { visibility: visible; }
+#pdfPrintArea { position: absolute; left: 0; top: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="app-header" onclick="openModal('settingsModal')">
+<div class="logo-box">
+<div style="background: var(--main); color: #000; font-weight: bold; width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size:14px;">شعاع</div>
+<div>
+<div class="brand-title">شعاع الأنوار للتجارة <span class="sync-badge" id="syncBadge">☁️ متصل لحظياً</span></div>
+<div style="font-size: 10px; color: #aaa;">النظام الموحد لجميع الموظفين ⚙️</div>
+</div>
+</div>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="nav-tabs">
+<button class="tab-btn active" id="btn-china" onclick="switchTab('china')">🇨🇳 طلبات الصين</button>
+<button class="tab-btn" id="btn-urgent" onclick="switchTab('urgent')">⚡ المستعجلة</button>
+<button class="tab-btn" id="btn-nawaqis" onclick="switchTab('nawaqis')">⚠️ النواقص</button>
+<button class="tab-btn" id="btn-received" onclick="switchTab('received')">📥 الواصل</button>
+<button class="tab-btn" id="btn-debts" onclick="switchTab('debts')">💰 المعلقات</button>
+<button class="tab-btn" id="btn-contacts" onclick="switchTab('contacts')">👥 الموردين والعملاء</button>
+</div>
+
+<!-- 1. قسم طلبات الصين -->
+<div id="tab-china" class="panel active">
+<div class="card">
+<div class="card-title">تسجيل طلب استيراد - الصين</div>
+
+<input type="text" id="cnItem" placeholder="اسم الصنف (مثال: لمبات LED 12W ama)">
+<div class="grid-2">
+<input type="number" id="cnTotalQty" placeholder="الكمية المطلوبة">
+<select id="cnStatus">
+<option value="⌛ قيد الطلب">⌛ قيد الطلب</option>
+<option value="🚢 في الطريق للشحن">🚢 في الطريق للشحن</option>
+<option value="📦 وصل للمخزن">📦 وصل للمخزن</option>
+</select>
+</div>
+
+<label style="font-size: 11px; color: var(--main); margin-top:4px; display:block;">صورة الصنف:</label>
+<input type="file" id="cnPhoto" accept="image/*" capture="environment" onchange="handlePhotoUpload(this)">
+<img id="cnPhotoView" class="img-preview">
+
+<button class="btn-main" onclick="saveChinaOrder()">💾 حفظ الطلب لدى الجميع</button>
+<button class="btn-blue" onclick="generateChinaReport()">📊 استعراض التقرير المصور</button>
+<a id="hiddenWaLink" href="#" target="_blank" style="display:none;"></a>
+</div>
+
+<div id="chinaOrdersList"></div>
+</div>
+
+<!-- 2. قسم الطلبات المستعجلة -->
+<div id="tab-urgent" class="panel">
+<div class="card">
+<div class="card-title">⚡ إضافة طلب مستعجل</div>
+<input type="text" id="urgItem" placeholder="اسم الصنف المستعجل">
+<input type="number" id="urgQty" placeholder="الكمية المطلوبة">
+<button class="btn-main" onclick="addUrgentItem()">حفظ في المستعجلة</button>
+</div>
+<button class="btn-wa" style="margin-bottom:10px;" onclick="sendUrgentWhatsApp()">📲 إرسال المستعجل للواتساب</button>
+<div id="urgentList"></div>
+</div>
+
+<!-- 3. قسم النواقص -->
+<div id="tab-nawaqis" class="panel">
+<div class="card">
+<div class="card-title">إضافة صنف ناقص</div>
+<input type="text" id="nqItem" placeholder="اسم الصنف الناقص">
+<div class="grid-2">
+<input type="number" id="nqQty" placeholder="الكمية">
+<select id="nqCat">
+<option value="🔌 كهرباء">🔌 كهرباء</option>
+<option value="🚰 سباكة">🚰 سباكة</option>
+<option value="🧱 مواد بناء">🧱 مواد بناء</option>
+<option value="⚙️ أدوات عامة">⚙️ أدوات عامة</option>
+</select>
+</div>
+<input type="text" id="nqUser" placeholder="اسم الموظف المُدخل (اختياري)">
+<button class="btn-main" onclick="addNawaqisItem()">حفظ في النواقص</button>
+</div>
+
+<!-- شريط البحث السريع -->
+<input type="text" id="searchNawaqis" placeholder="🔍 بحث سريع في النواقص..." oninput="renderNawaqis()" style="margin-bottom: 8px; border-color: var(--main);">
+
+<div style="display: flex; gap: 6px; margin-bottom: 8px;">
+<button class="btn-blue" onclick="openReportModal()" style="margin: 0; flex: 1;">📊 التقرير</button>
+<button class="btn-wa" onclick="sendSelectedNawaqisWhatsApp()" style="margin: 0; flex: 1.5;">📲 إرسال المحدد للواتساب</button>
+</div>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:0 4px;">
+<label style="font-size:12px; color:var(--main); cursor:pointer;">
+<input type="checkbox" id="selectAllNawaqis" onchange="toggleSelectAllNawaqis(this)"> تحديد الكل
+</label>
+<span style="font-size:11px; color:#aaa;" id="selectedCountText">المحدد: 0</span>
+</div>
+
+<div id="nawaqisList"></div>
+</div>
+
+<!-- 4. قسم البضاعة الواصلة -->
+<div id="tab-received" class="panel">
+<div class="card">
+<div class="card-title">تسجيل بضاعة واصلة (خصم تلقائي)</div>
+<label style="font-size: 11px; color: var(--main);">اختر جهة الخصم:</label>
+<select id="rcTarget">
+<option value="both">🔍 الخصم التلقائي (المستعجلة / النواقص / الصين)</option>
+<option value="urgent">⚡ المستعجلة فقط</option>
+<option value="nawaqis">⚠️ النواقص فقط</option>
+<option value="china">🇨🇳 الصين فقط</option>
+</select>
+
+<input type="text" id="rcItem" placeholder="اسم الصنف الواصل...">
+<input type="number" id="rcQty" placeholder="الكمية الواصلة">
+<button class="btn-main" onclick="processReceivedGoods()">تسجيل الخصم فوراً</button>
+</div>
+</div>
+
+<!-- 5. قسم المعلقات -->
+<div id="tab-debts" class="panel">
+<div class="card">
+<div class="card-title">💰 معلقة عميل وتفعيل التذكير</div>
+
+<input type="text" id="dbName" placeholder="اسم العميل">
+<input type="tel" id="dbPhone" placeholder="رقم الهاتف">
+<input type="number" id="dbAmount" placeholder="المبلغ المتبقي">
+<textarea id="dbDesc" rows="2" placeholder="تفاصيل البيان..."></textarea>
+
+<select id="dbTimerMinutes">
+<option value="0">بدون مؤقت (إرسال يدوي)</option>
+<option value="1">تذكير بعد 1 دقيقة (للتجربة)</option>
+<option value="15">تذكير بعد 15 دقيقة</option>
+<option value="60">تذكير بعد 1 ساعة</option>
+</select>
+
+<button class="btn-main" onclick="saveDebtItem()">حفظ وتفعيل التذكير</button>
+</div>
+
+<!-- شريط البحث السريع في المعلقات -->
+<input type="text" id="searchDebts" placeholder="🔍 بحث عن عميل..." oninput="renderDebts()" style="margin-bottom: 8px; border-color: var(--main);">
+
+<div id="debtsList"></div>
+</div>
+
+<!-- 6. قسم الموردين والعملاء -->
+<div id="tab-contacts" class="panel">
+<div class="card">
+<div class="card-title">تسجيل مورد / عميل جديد</div>
+<select id="ctType">
+<option value="supplier">🏭 مورد</option>
+<option value="client">👥 عميل</option>
+</select>
+<input type="text" id="ctName" placeholder="الاسم">
+<input type="tel" id="ctPhone" placeholder="رقم الهاتف">
+<button class="btn-main" onclick="saveContact()">حفظ في القائمة</button>
+</div>
+<div id="contactsList"></div>
+</div>
+
+<!-- Modal: تقرير الصين -->
+<div class="modal-overlay" id="chinaReportModal">
+<div class="modal-card">
+<h3 style="color: var(--main); margin-bottom: 10px;">📄 تقرير طلبات الصين المصور</h3>
+<div id="pdfPrintArea">
+<div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px;">
+<h2 style="margin: 0; font-size: 16px; color:#000;">شعاع الأنوار للتجارة العامة والاستيراد</h2>
+<p style="margin: 2px 0; font-size: 11px; color:#333;">تقرير طلبات الصين - تاريخ: <span id="reportDate"></span></p>
+</div>
+<div id="chinaReportTable"></div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 15px;">
+<button class="btn-blue" onclick="window.print()">🖨️ طباعة / PDF</button>
+<button class="btn-wa" onclick="shareChinaReportWa()">📲 مشاركة للواتساب</button>
+<button class="btn-main" onclick="copyChinaReportText()">📋 نسخ النص</button>
+<button class="btn-danger" onclick="closeModal('chinaReportModal')">إغلاق</button>
+</div>
+</div>
+</div>
+
+<!-- Modal: تقرير النواقص -->
+<div class="modal-overlay" id="reportModal">
+<div class="modal-card">
+<h3 style="color: var(--main); margin-bottom: 12px;">📊 تقرير كشف النواقص</h3>
+<div id="reportDetails"></div>
+<button class="btn-main" onclick="closeModal('reportModal')" style="margin-top: 15px;">إغلاق التقرير</button>
+</div>
+</div>
+
+<!-- Modal: الإعدادات والنسخ الاحتياطي -->
+<div class="modal-overlay" id="settingsModal">
+<div class="modal-card">
+<h3 style="color: var(--main); margin-bottom: 10px;">⚙️ الإعدادات والنسخ الاحتياطي</h3>
+<input type="text" id="backupCustomName" placeholder="اسم ملف النسخة الاحتياطية">
+
+<div class="grid-2" style="margin-top: 5px;">
+<button class="btn-main" onclick="exportBackupDataNamed('download')">📥 حفظ بالهاتف</button>
+<button class="btn-wa" onclick="exportBackupDataNamed('whatsapp')">📲 إرسال للواتساب</button>
+</div>
+
+<label class="btn-blue" style="display:block; text-align:center; padding:10px; margin-top: 8px; cursor:pointer; font-size:12px;">
+📂 استعادة نسخة من ملف
+<input type="file" id="backupFileInput" accept=".json" onchange="importBackupData(this)" style="display:none;">
+</label>
+
+<hr style="border: 0.5px solid #444; margin: 12px 0;">
+<button class="btn-danger" onclick="protectedResetData()">🔒 مسح كافة البيانات سحابياً (1234)</button>
+<button class="btn-main" style="background:#555; color:#fff; margin-top:8px;" onclick="closeModal('settingsModal')">إغلاق</button>
+</div>
+</div>
+
+<script>
+// ==========================================
+// 🔑 مفاتيح Firebase الخاصة بك
+// ==========================================
+const firebaseConfig = {
+apiKey: "AIzaSyDAszeF660EGszYD9lNj0EG",
+authDomain: "mailk-53f75.firebaseapp.com",
+databaseURL: "https://mailk-53f75-default-rtdb.firebaseio.com",
+projectId: "mailk-53f75",
+storageBucket: "mailk-53f75.appspot.com",
+messagingSenderId: "734247321496",
+appId: "1:734247321496:web:82fe480fe9d022745e75ed",
+measurementId: "G-EQBEX90WZC"
+};
+
+var db = null;
+try {
+firebase.initializeApp(firebaseConfig);
+db = firebase.database();
+} catch(e) { console.log("Firebase error:", e); }
+
+var globalData = {
+sh_china_orders: [],
+sh_nawaqis_app: [],
+sh_urgent_app: [],
+sh_debts_app: [],
+sh_contacts_db: []
+};
+
+if (db) {
+db.ref('shuaa_store').on('value', function(snapshot) {
+var val = snapshot.val();
+if (val) {
+globalData.sh_china_orders = val.sh_china_orders || [];
+globalData.sh_nawaqis_app = val.sh_nawaqis_app || [];
+globalData.sh_urgent_app = val.sh_urgent_app || [];
+globalData.sh_debts_app = val.sh_debts_app || [];
+globalData.sh_contacts_db = val.sh_contacts_db || [];
+
+renderChinaOrders();
+renderUrgent();
+renderNawaqis();
+renderDebts();
+renderContacts();
+}
+});
+}
+
+function syncToCloud() {
+if (db) db.ref('shuaa_store').set(globalData);
+}
+
+function switchTab(tabName) {
+var tabs = ['china', 'urgent', 'nawaqis', 'received', 'debts', 'contacts'];
+for (var i = 0; i < tabs.length; i++) {
+var id = tabs[i];
+var panelEl = document.getElementById('tab-' + id);
+var btnEl = document.getElementById('btn-' + id);
+if (panelEl) panelEl.classList.toggle('active', id === tabName);
+if (btnEl) btnEl.classList.toggle('active', id === tabName);
+}
+}
+
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+function protectedResetData() {
+var pwd = prompt("⚠️ أدخل كلمة السر لتأكيد المسح السحابي (1234):");
+if (pwd === "1234") {
+globalData = { sh_china_orders: [], sh_nawaqis_app: [], sh_urgent_app: [], sh_debts_app: [], sh_contacts_db: [] };
+syncToCloud();
+alert('تم مسح البيانات.');
+}
+}
+
+function formatPhone(phone) {
+if (!phone) return '';
+var clean = phone.replace(/\D/g, '');
+if (clean.length === 9 && clean.indexOf('7') === 0) clean = '967' + clean;
+else if (clean.length === 8 && clean.indexOf('7') === 0) clean = '967' + clean;
+return clean;
+}
+
+function triggerWhatsApp(phone, text) {
+var cleanNum = formatPhone(phone);
+var url = cleanNum ?
+'https://api.whatsapp.com/send?phone=' + cleanNum + '&text=' + encodeURIComponent(text) :
+'https://api.whatsapp.com/send?text=' + encodeURIComponent(text);
+
+var link = document.getElementById('hiddenWaLink');
+if (link) { link.href = url; link.click(); }
+else { window.location.href = url; }
+}
+
+// China Functions
+var currentBase64Image = "";
+function handlePhotoUpload(input) {
+if (input.files && input.files[0]) {
+var reader = new FileReader();
+reader.onload = function(e) {
+var img = new Image();
+img.onload = function() {
+var canvas = document.createElement('canvas');
+var ctx = canvas.getContext('2d');
+var maxW = 500, maxH = 500;
+var width = img.width, height = img.height;
+if (width > height) { if (width > maxW) { height *= maxW / width; width = maxW; } }
+else { if (height > maxH) { width *= maxH / height; height = maxH; } }
+canvas.width = width; canvas.height = height;
+ctx.drawImage(img, 0, 0, width, height);
+
+currentBase64Image = canvas.toDataURL('image/jpeg', 0.6);
+var view = document.getElementById('cnPhotoView');
+view.src = currentBase64Image;
+view.style.display = 'block';
+};
+img.src = e.target.result;
+};
+reader.readAsDataURL(input.files[0]);
+}
+}
+
+function saveChinaOrder() {
+var item = document.getElementById('cnItem').value.trim();
+var qty = document.getElementById('cnTotalQty').value.trim();
+var status = document.getElementById('cnStatus').value;
+
+if (!item || !qty) return alert('أدخل اسم الصنف والكمية');
+
+globalData.sh_china_orders.push({ id: Date.now(), item: item, qty: qty, status: status, photo: currentBase64Image });
+syncToCloud();
+
+alert('تم الحفظ ومزامنة الطلب سحابياً.');
+document.getElementById('cnItem').value = ''; document.getElementById('cnTotalQty').value = '';
+document.getElementById('cnPhotoView').style.display = 'none';
+currentBase64Image = "";
+}
+
+function renderChinaOrders() {
+var list = globalData.sh_china_orders;
+var container = document.getElementById('chinaOrdersList');
+if (!container) return;
+container.innerHTML = '';
+
+for (var i = 0; i < list.length; i++) {
+(function(index) {
+var o = list[index];
+var div = document.createElement('div');
+div.className = 'card';
+div.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-start;">' +
+'<div><strong style="color:var(--main); font-size:14px;">🇨🇳 ' + o.item + '</strong>' +
+'<div style="font-size:12px; color:#ccc; margin-top:2px;">الكمية: <strong style="color:var(--green)">' + o.qty + '</strong> | الحالة: <span class="badge-cat">' + (o.status || 'قيد الطلب') + '</span></div></div>' +
+'<button class="btn-danger" style="width:auto; padding:4px 8px; font-size:10px;">حذف</button></div>' +
+(o.photo ? '<img src="' + o.photo + '" style="width:100%; height:110px; object-fit:cover; border-radius:6px; margin-top:6px;">' : '');
+div.querySelector('.btn-danger').onclick = function() { removeChinaOrder(index); };
+container.appendChild(div);
+})(i);
+}
+}
+
+function removeChinaOrder(index) { globalData.sh_china_orders.splice(index, 1); syncToCloud(); }
+
+function generateChinaReport() {
+var list = globalData.sh_china_orders;
+if (list.length === 0) return alert('لا توجد طلبات في قسم الصين.');
+document.getElementById('reportDate').innerText = new Date().toLocaleDateString('ar-EG');
+var container = document.getElementById('chinaReportTable');
+var html = '<table><thead><tr><th>#</th><th>الصورة</th><th>اسم الصنف</th><th>الكمية</th><th>الحالة</th></tr></thead><tbody>';
+for (var i = 0; i < list.length; i++) {
+var o = list[i];
+html += '<tr><td>' + (i + 1) + '</td><td>' + (o.photo ? '<img src="' + o.photo + '" class="report-img">' : 'بدون') + '</td><td><strong>' + o.item + '</strong></td><td style="font-weight:bold; color:green;">' + o.qty + '</td><td>' + (o.status || 'قيد الطلب') + '</td></tr>';
+}
+html += '</tbody></table>';
+container.innerHTML = html;
+openModal('chinaReportModal');
+}
+
+function shareChinaReportWa() {
+var list = globalData.sh_china_orders;
+var msg = 'تقرير طلبات الاستيراد (الصين) - شعاع الأنوار\n\n';
+for (var i = 0; i < list.length; i++) msg += (i+1) + '. ' + list[i].item + ' - (الكمية: ' + list[i].qty + ') - ' + (list[i].status || '') + '\n';
+triggerWhatsApp('', msg);
+}
+
+function copyChinaReportText() {
+var list = globalData.sh_china_orders;
+var msg = 'تقرير طلبات الصين - شعاع الأنوار:\n\n';
+for (var i = 0; i < list.length; i++) msg += (i+1) + '. ' + list[i].item + ' - الكمية: ' + list[i].qty + '\n';
+navigator.clipboard.writeText(msg).then(() => alert('تم النسخ!'));
+}
+
+// Nawaqis Functions
+var selectedNawaqisIndices = [];
+function addNawaqisItem() {
+var name = document.getElementById('nqItem').value.trim();
+var qty = parseFloat(document.getElementById('nqQty').value);
+var cat = document.getElementById('nqCat').value;
+var user = document.getElementById('nqUser').value.trim();
+
+if (!name || isNaN(qty) || qty <= 0) return alert('أدخل الصنف والكمية');
+
+var list = globalData.sh_nawaqis_app;
+var fIdx = -1;
+for (var i = 0; i < list.length; i++) { if (list[i].name.toLowerCase() === name.toLowerCase()) { fIdx = i; break; } }
+
+if (fIdx !== -1) list[fIdx].qty += qty;
+else list.push({ name: name, qty: qty, cat: cat, user: user });
+
+syncToCloud();
+document.getElementById('nqItem').value = ''; document.getElementById('nqQty').value = ''; document.getElementById('nqUser').value = '';
+alert('تم الحفظ في النواقص.');
+}
+
+function renderNawaqis() {
+var list = globalData.sh_nawaqis_app;
+var searchVal = (document.getElementById('searchNawaqis') ? document.getElementById('searchNawaqis').value.toLowerCase() : '');
+var container = document.getElementById('nawaqisList');
+if (!container) return;
+container.innerHTML = '';
+
+for (var i = 0; i < list.length; i++) {
+(function(index) {
+var item = list[index];
+if (searchVal && item.name.toLowerCase().indexOf(searchVal) === -1) return;
+
+var isChecked = selectedNawaqisIndices.indexOf(index) !== -1 ? 'checked' : '';
+var div = document.createElement('div');
+div.className = 'list-item';
+div.innerHTML = '<div style="display:flex; align-items:center; gap:8px;">' +
+'<input type="checkbox" style="width:18px; height:18px; margin:0;" ' + isChecked + '>' +
+'<div><strong>' + item.name + '</strong> <span class="badge-cat">' + (item.cat || 'عام') + '</span><br>' +
+'<span style="color:var(--main)">الكمية: ' + item.qty + '</span> ' + (item.user ? '<span style="font-size:10px; color:#aaa;">(' + item.user + ')</span>' : '') + '</div>' +
+'</div><button class="btn-danger" style="width:auto; padding:4px 8px; font-size:10px;">حذف</button>';
+
+div.querySelector('input[type="checkbox"]').onchange = function(e) {
+var pos = selectedNawaqisIndices.indexOf(index);
+if (e.target.checked && pos === -1) selectedNawaqisIndices.push(index);
+else if (!e.target.checked && pos !== -1) selectedNawaqisIndices.splice(pos, 1);
+updateSelectedCountUI();
+};
+
+div.querySelector('.btn-danger').onclick = function() { removeNawaqis(index); };
+container.appendChild(div);
+})(i);
+}
+updateSelectedCountUI();
+}
+
+function removeNawaqis(index) { globalData.sh_nawaqis_app.splice(index, 1); selectedNawaqisIndices = []; syncToCloud(); }
+function toggleSelectAllNawaqis(master) {
+var list = globalData.sh_nawaqis_app;
+selectedNawaqisIndices = [];
+if (master.checked) { for (var i = 0; i < list.length; i++) selectedNawaqisIndices.push(i); }
+renderNawaqis();
+}
+function updateSelectedCountUI() {
+var txt = document.getElementById('selectedCountText');
+if (txt) txt.innerText = 'المحدد: ' + selectedNawaqisIndices.length;
+}
+function sendSelectedNawaqisWhatsApp() {
+var list = globalData.sh_nawaqis_app;
+if (list.length === 0 || selectedNawaqisIndices.length === 0) return alert('حدد أصناف أولاً');
+var msg = 'كشف النواقص المحددة - شعاع الأنوار\n\n';
+for (var i = 0; i < selectedNawaqisIndices.length; i++) {
+var idx = selectedNawaqisIndices[i];
+if (list[idx]) msg += '▪️ ' + list[idx].name + ' - (' + (list[idx].cat || 'عام') + ') - (الكمية: ' + list[idx].qty + ')\n';
+}
+triggerWhatsApp('', msg);
+}
+
+// Debts & Timers
+function saveDebtItem() {
+var name = document.getElementById('dbName').value.trim();
+var phone = document.getElementById('dbPhone').value.trim();
+var amount = document.getElementById('dbAmount').value.trim();
+var desc = document.getElementById('dbDesc').value.trim();
+var timerMins = parseInt(document.getElementById('dbTimerMinutes').value) || 0;
+
+if (!name || !amount) return alert('أدخل اسم العميل والمبلغ');
+
+globalData.sh_debts_app.push({ id: Date.now(), name: name, phone: phone, amount: amount, desc: desc });
+syncToCloud();
+
+if (timerMins > 0) {
+setTimeout(function() {
+alert('🔔 تذكير سداد العميل: ' + name + '\nالمبلغ: ' + amount);
+sendDebtReminder(name, phone, amount, desc);
+}, timerMins * 60000);
+alert('تم تفعيل التذكير بعد ' + timerMins + ' دقيقة.');
+} else alert('تم الحفظ.');
+
+document.getElementById('dbName').value = ''; document.getElementById('dbPhone').value = '';
+document.getElementById('dbAmount').value = ''; document.getElementById('dbDesc').value = '';
+}
+
+function renderDebts() {
+var list = globalData.sh_debts_app;
+var searchVal = (document.getElementById('searchDebts') ? document.getElementById('searchDebts').value.toLowerCase() : '');
+var container = document.getElementById('debtsList');
+if (!container) return;
+container.innerHTML = '';
+
+for (var i = 0; i < list.length; i++) {
+(function(index) {
+var item = list[index];
+if (searchVal && item.name.toLowerCase().indexOf(searchVal) === -1) return;
+
+var div = document.createElement('div');
+div.className = 'card';
+div.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:flex-start;">' +
+'<div><strong style="color:var(--main); font-size:14px;">💰 العميل: ' + item.name + '</strong>' +
+'<div style="font-size:13px; color:var(--red); font-weight:bold; margin-top:2px;">المبلغ: ' + item.amount + '</div>' +
+(item.desc ? '<div style="font-size:11px; color:#ccc; margin-top:2px;">' + item.desc + '</div>' : '') +
+'</div><button class="btn-danger" style="width:auto; padding:4px 8px; font-size:10px;">سداد</button></div>' +
+'<button class="btn-wa" style="margin-top:6px;">📲 إرسال تذكير عبر الواتساب</button>';
+
+div.querySelector('.btn-danger').onclick = function() { removeDebt(index); };
+div.querySelector('.btn-wa').onclick = function() { sendDebtReminder(item.name, item.phone, item.amount, item.desc); };
+container.appendChild(div);
+})(i);
+}
+}
+
+function removeDebt(index) { globalData.sh_debts_app.splice(index, 1); syncToCloud(); }
+function sendDebtReminder(name, phone, amount, desc) {
+var msg = 'الأخ العزيز / ' + name + ' المحترم\nمن شعاع الأنوار للتجارة\n\nنود تذكيركم بالمبلغ المتبقي عليكم: (' + amount + ').\n' + (desc ? 'البيان: ' + desc : '');
+triggerWhatsApp(phone, msg);
+}
+
+// Urgent & Received
+function addUrgentItem() {
+var name = document.getElementById('urgItem').value.trim();
+var qty = parseFloat(document.getElementById('urgQty').value);
+if (!name || isNaN(qty) || qty <= 0) return alert('أدخل الصنف والكمية');
+
+globalData.sh_urgent_app.push({ name: name, qty: qty });
+syncToCloud();
+document.getElementById('urgItem').value = ''; document.getElementById('urgQty').value = '';
+alert('تم الحفظ في المستعجلة ⚡');
+}
+
+function renderUrgent() {
+var list = globalData.sh_urgent_app;
+var container = document.getElementById('urgentList');
+if (!container) return;
+container.innerHTML = '';
+
+for (var i = 0; i < list.length; i++) {
+(function(index) {
+var item = list[index];
+var div = document.createElement('div');
+div.className = 'list-item';
+div.innerHTML = '<div>⚡ <strong>' + item.name + '</strong><br><span style="color:var(--main)">الكمية: ' + item.qty + '</span></div>' +
+'<button class="btn-danger" style="width:auto; padding:4px 8px; font-size:10px;">حذف</button>';
+div.querySelector('.btn-danger').onclick = function() { globalData.sh_urgent_app.splice(index, 1); syncToCloud(); };
+container.appendChild(div);
+})(i);
+}
+}
+
+function sendUrgentWhatsApp() {
+var list = globalData.sh_urgent_app;
+if (list.length === 0) return alert('قائمة المستعجل فارغة');
+var msg = 'طلبات مستعجلة ⚡ - شعاع الأنوار\n\n';
+for (var i = 0; i < list.length; i++) msg += '⚡ ' + list[i].name + ' (الكمية: ' + list[i].qty + ')\n';
+triggerWhatsApp('', msg);
+}
+
+function processReceivedGoods() {
+var name = document.getElementById('rcItem').value.trim();
+var qty = parseFloat(document.getElementById('rcQty').value);
+var target = document.getElementById('rcTarget').value;
+if (!name || isNaN(qty) || qty <= 0) return alert('أدخل الصنف والكمية الواصلة');
+
+var deducted = false;
+if (target === 'urgent' || target === 'both') {
+var uList = globalData.sh_urgent_app;
+for (var i = 0; i < uList.length; i++) {
+if (uList[i].name.toLowerCase() === name.toLowerCase()) {
+uList[i].qty -= qty; if (uList[i].qty <= 0) uList.splice(i, 1);
+deducted = true; break;
+}
+}
+}
+if ((target === 'nawaqis' || target === 'both') && !deducted) {
+var nqList = globalData.sh_nawaqis_app;
+for (var j = 0; j < nqList.length; j++) {
+if (nqList[j].name.toLowerCase() === name.toLowerCase()) {
+nqList[j].qty -= qty; if (nqList[j].qty <= 0) nqList.splice(j, 1);
+deducted = true; break;
+}
+}
+}
+if (deducted) syncToCloud();
+else alert('ℹ️ تم تسجيل العملية.');
+document.getElementById('rcItem').value = ''; document.getElementById('rcQty').value = '';
+}
+
+// Contacts & Backup
+function saveContact() {
+var type = document.getElementById('ctType').value;
+var name = document.getElementById('ctName').value.trim();
+var phone = document.getElementById('ctPhone').value.trim();
+if (!name || !phone) return alert('أدخل الاسم والهاتف');
+globalData.sh_contacts_db.push({ type: type, name: name, phone: phone });
+syncToCloud();
+document.getElementById('ctName').value = ''; document.getElementById('ctPhone').value = '';
+alert('تم الحفظ.');
+}
+
+function renderContacts() {
+var list = globalData.sh_contacts_db;
+var container = document.getElementById('contactsList');
+if (!container) return;
+container.innerHTML = '';
+for (var i = 0; i < list.length; i++) {
+(function(index) {
+var c = list[index];
+var div = document.createElement('div');
+div.className = 'list-item';
+div.innerHTML = '<div>' + (c.type === 'supplier' ? '🏭 [مورد]' : '👥 [عميل]') + ' <strong>' + c.name + '</strong><br>📞 ' + c.phone + '</div>' +
+'<button class="btn-danger" style="width:auto; padding:4px 8px; font-size:10px;">حذف</button>';
+div.querySelector('.btn-danger').onclick = function() { globalData.sh_contacts_db.splice(index, 1); syncToCloud(); };
+container.appendChild(div);
+})(i);
+}
+}
+
+function exportBackupDataNamed(mode) {
+var customName = document.getElementById('backupCustomName').value.trim();
+var fileName = customName ? customName + ".json" : "shuaa_backup_" + new Date().toISOString().slice(0,10) + ".json";
+if (mode === 'download') {
+var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(globalData, null, 2));
+var a = document.createElement('a'); a.setAttribute("href", dataStr); a.setAttribute("download", fileName);
+document.body.appendChild(a); a.click(); a.remove();
+alert('تم الحفظ بالهاتف.');
+} else triggerWhatsApp('', 'نسخة احتياطية - شعاع الأنوار\n' + fileName);
+}
+
+function importBackupData(input) {
+if (input.files && input.files[0]) {
+var reader = new FileReader();
+reader.onload = function(e) {
+try {
+var data = JSON.parse(e.target.result);
+if (data) { globalData = data; syncToCloud(); alert('تم استعادة البيانات سحابياً!'); }
+} catch(err) { alert('خطأ بالملف'); }
+};
+reader.readAsText(input.files[0]);
+}
+}
+
+function openReportModal() {
+var list = globalData.sh_nawaqis_app;
+var container = document.getElementById('reportDetails');
+if (list.length === 0) container.innerHTML = '<p style="color:#aaa; text-align:center;">لا توجد أصناف.</p>';
+else {
+var html = '<table style="width:100%; border-collapse:collapse; font-size:12px; color:#fff;">';
+html += '<tr style="border-bottom:2px solid var(--main); color:var(--main);"><th style="padding:6px;">#</th><th style="padding:6px;">الصنف</th><th style="padding:6px;">القسم</th><th style="padding:6px;">الكمية</th></tr>';
+for (var i = 0; i < list.length; i++) {
+html += '<tr style="border-bottom:1px solid #333;"><td style="padding:6px; color:#888;">' + (i+1) + '</td><td style="padding:6px;">' + list[i].name + '</td><td style="padding:6px;">' + (list[i].cat || 'عام') + '</td><td style="padding:6px; color:var(--green);">' + list[i].qty + '</td></tr>';
+}
+html += '</table>';
+container.innerHTML = html;
+}
+openModal('reportModal');
+}
+</script>
+</body>
+</html>
